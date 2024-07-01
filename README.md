@@ -1,5 +1,5 @@
 # Motivation
-Basic bcrypt auth shouldn't be hard for a go stdlib web app. Its true, but online forums are littered with desparate cries for a [django-allauth](https://docs.allauth.org/en/latest/) equivalent in the Golang ecosystem, which doesn't exist. These cries either come from beginners, or from time conscious individuals uninterested in reinventing wheels. Both are valid.
+Basic bcrypt auth isn't that hard to learn for a Go `net/http` web app. Its true, but online forums are littered with desparate cries for a [django-allauth](https://docs.allauth.org/en/latest/) equivalent in the Go ecosystem, which doesn't exist. These cries either come from beginners, or from time conscious individuals uninterested in reinventing wheels. Both are valid.
 
 The basic requirements are to handle the basic auth flows with email/pass and with OAuth, against a `database/sql` compliant database connection.
 
