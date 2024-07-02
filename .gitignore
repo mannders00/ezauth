@@ -23,3 +23,6 @@ go.work.sum
 
 # SQLite Database
 *.db
+
+# air temp builds
+tmp
