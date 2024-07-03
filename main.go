@@ -85,8 +85,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("User created")
-	w.WriteHeader(http.StatusCreated)
+	fmt.Fprintf(w, "User created")
 
 }
 
@@ -107,6 +106,5 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("User verified")
-	w.WriteHeader(http.StatusCreated)
+	fmt.Fprintf(w, "User verified")
 }
