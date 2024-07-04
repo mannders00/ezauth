@@ -5,25 +5,39 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
+	"io/fs"
 	"net/http"
+	"path/filepath"
 
 	"golang.org/x/crypto/bcrypt"
 	_ "modernc.org/sqlite"
 )
 
-//go:embed static/*
-var fs embed.FS
+//go:embed resources
+var embedFS embed.FS
 var db *sql.DB
+var tmpl map[string]*template.Template
 
-func main() {
+// Parse templates into `tmpl` and initialize `db`
+func init() {
 
 	// load templates
-	tmpl, err := template.ParseFS(fs, "static/templates/*")
+	tmpl = make(map[string]*template.Template)
+
+	var err error
+	// Load templates
+	err = fs.WalkDir(embedFS, "resources/views", func(viewPath string, d fs.DirEntry, err error) error {
+		if !d.IsDir() {
+			viewPathBase := filepath.Base(viewPath)
+			tmpl[viewPathBase] = template.Must(template.ParseFS(embedFS, viewPath, "resources/templates/*"))
+		}
+		return nil
+	})
 	if err != nil {
 		panic(err)
 	}
 
-	// setup sqlite
+	// Setup SQLite (in theory, any `*sql.DB`)
 	db, err = sql.Open("sqlite", "file:data.db")
 	if err != nil {
 		panic(err)
@@ -40,16 +54,21 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+}
 
+func main() {
+	defer db.Close()
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "hello")
-	})
-	mux.HandleFunc("POST /register", registerHandler)
-	mux.HandleFunc("GET /register", renderTemplate(tmpl, "register.html", nil))
 
+	// Register new user
+	mux.HandleFunc("POST /register", registerHandler)
+	mux.HandleFunc("GET /register", renderView("register.html", nil))
+
+	// Log In
 	mux.HandleFunc("POST /login", loginHandler)
-	mux.HandleFunc("GET /login", renderTemplate(tmpl, "login.html", nil))
+	mux.HandleFunc("GET /login", renderView("login.html", nil))
+
+	mux.Handle("/resources/", http.FileServerFS(embedFS))
 
 	fmt.Println("Listening on :8080")
 	if err := http.ListenAndServe(":8080", mux); err != nil {
@@ -57,9 +76,9 @@ func main() {
 	}
 }
 
-func renderTemplate(tmpl *template.Template, view string, data interface{}) http.HandlerFunc {
+func renderView(view string, data interface{}) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		tmpl.ExecuteTemplate(w, view, data)
+		tmpl[view].ExecuteTemplate(w, "base", data)
 	}
 }
 
@@ -73,6 +92,13 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(password) <= 8 {
+		http.Error(w, "Password should be greater than ", http.StatusBadRequest)
+		return
+	}
+
+	// other checks
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -85,8 +111,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "User created")
-
+	tmpl["login.html"].ExecuteTemplate(w, "content", nil)
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -106,5 +131,5 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "User verified")
+	fmt.Fprint(w, "all good man you're in")
 }
