@@ -9,7 +9,7 @@
 </head>
 <body hx-boost="true" hx-ext="response-targets">
 	<div id="content">
-		{{ template "content" . }} 
+		{{ block "content" . }} {{ end }}
 	</div>
 </body>
 </html>

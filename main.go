@@ -18,14 +18,17 @@ var embedFS embed.FS
 var db *sql.DB
 var tmpl map[string]*template.Template
 
-// Parse templates into `tmpl` and initialize `db`
 func init() {
 
-	// load templates
+	// Here we walk over all views/*, set the view name as a key of `tmpl`,
+	// Then parse all templates/* into that value of *template.Template
+	// This approach lets us define multiple views extending shared templates
+	// While preloading templates into memory.
+	//
+	// tmpl["login.html"].ExecuteTemplate(w, "content", nil)	<- Renders just the content block
+	// tmpl["login.html"].ExecuteTemplate(w, "base", nil)		<- Renders the whole page
 	tmpl = make(map[string]*template.Template)
-
 	var err error
-	// Load templates
 	err = fs.WalkDir(embedFS, "resources/views", func(viewPath string, d fs.DirEntry, err error) error {
 		if !d.IsDir() {
 			viewPathBase := filepath.Base(viewPath)
@@ -93,7 +96,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(password) <= 8 {
-		http.Error(w, "Password should be greater than ", http.StatusBadRequest)
+		http.Error(w, "Password must be at least 8 characters", http.StatusBadRequest)
 		return
 	}
 
@@ -111,6 +114,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Redirect to login by returning only the "content" of the login.html template
 	tmpl["login.html"].ExecuteTemplate(w, "content", nil)
 }
 
@@ -131,5 +135,5 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprint(w, "all good man you're in")
+	fmt.Fprint(w, "successful login")
 }
