@@ -1,4 +1,4 @@
-package main
+package ezauth
 
 import (
 	"database/sql"
@@ -10,15 +10,21 @@ import (
 	"path/filepath"
 
 	"golang.org/x/crypto/bcrypt"
-	_ "modernc.org/sqlite"
 )
 
 //go:embed resources
 var embedFS embed.FS
-var db *sql.DB
-var tmpl map[string]*template.Template
 
-func init() {
+type Auth struct {
+	db   *sql.DB
+	tmpl map[string]*template.Template
+}
+
+func NewAuth(db *sql.DB) (*Auth, error) {
+	a := &Auth{
+		db:   db,
+		tmpl: make(map[string]*template.Template),
+	}
 
 	// Here we walk over all views/*, set the view name as a key of `tmpl`,
 	// Then parse all templates/* into that value of *template.Template
@@ -27,23 +33,16 @@ func init() {
 	//
 	// tmpl["login.html"].ExecuteTemplate(w, "content", nil)	<- Renders just the content block
 	// tmpl["login.html"].ExecuteTemplate(w, "base", nil)		<- Renders the whole page
-	tmpl = make(map[string]*template.Template)
 	var err error
 	err = fs.WalkDir(embedFS, "resources/views", func(viewPath string, d fs.DirEntry, err error) error {
 		if !d.IsDir() {
 			viewPathBase := filepath.Base(viewPath)
-			tmpl[viewPathBase] = template.Must(template.ParseFS(embedFS, viewPath, "resources/templates/*"))
+			a.tmpl[viewPathBase] = template.Must(template.ParseFS(embedFS, viewPath, "resources/templates/*"))
 		}
 		return nil
 	})
 	if err != nil {
-		panic(err)
-	}
-
-	// Setup SQLite (in theory, any `*sql.DB`)
-	db, err = sql.Open("sqlite", "file:data.db")
-	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	createTableSQL := `
@@ -55,37 +54,27 @@ func init() {
 
 	_, err = db.Exec(createTableSQL)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+
+	return a, nil
 }
 
-func main() {
-	defer db.Close()
-	mux := http.NewServeMux()
-
-	// Register new user
-	mux.HandleFunc("POST /register", registerHandler)
-	mux.HandleFunc("GET /register", renderView("register.html", nil))
-
-	// Log In
-	mux.HandleFunc("POST /login", loginHandler)
-	mux.HandleFunc("GET /login", renderView("login.html", nil))
-
-	mux.Handle("/resources/", http.FileServerFS(embedFS))
-
-	fmt.Println("Listening on :8080")
-	if err := http.ListenAndServe(":8080", mux); err != nil {
-		panic(err)
-	}
+func (a *Auth) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("POST /auth/register", a.registerHandler)
+	mux.HandleFunc("GET /auth/register", a.renderView("register.html", nil))
+	mux.HandleFunc("POST /auth/login", a.loginHandler)
+	mux.HandleFunc("GET /auth/login", a.renderView("login.html", nil))
+	mux.Handle("/auth/resources/", http.StripPrefix("/auth/", http.FileServerFS(embedFS)))
 }
 
-func renderView(view string, data interface{}) http.HandlerFunc {
+func (a *Auth) renderView(view string, data interface{}) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		tmpl[view].ExecuteTemplate(w, "base", data)
+		a.tmpl[view].ExecuteTemplate(w, "base", data)
 	}
 }
 
-func registerHandler(w http.ResponseWriter, r *http.Request) {
+func (a *Auth) registerHandler(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	password := r.FormValue("password")
 	password_confirm := r.FormValue("password_confirm")
@@ -108,22 +97,22 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = db.Exec("INSERT INTO users (email, password) VALUES ($1, $2)", email, string(hashedPassword))
+	_, err = a.db.Exec("INSERT INTO users (email, password) VALUES ($1, $2)", email, string(hashedPassword))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Redirect to login by returning only the "content" of the login.html template
-	tmpl["login.html"].ExecuteTemplate(w, "content", nil)
+	a.tmpl["login.html"].ExecuteTemplate(w, "content", nil)
 }
 
-func loginHandler(w http.ResponseWriter, r *http.Request) {
+func (a *Auth) loginHandler(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	password := r.FormValue("password")
 
 	var storedPassword string
-	err := db.QueryRow("SELECT password FROM users WHERE email=($1)", email).Scan(&storedPassword)
+	err := a.db.QueryRow("SELECT password FROM users WHERE email=($1)", email).Scan(&storedPassword)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return

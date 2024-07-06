@@ -3,9 +3,9 @@
 {{ define "title" }} Log In {{ end }}
 
 {{ define "content" }}
-<h3> <a href="/register"> Register </a> </h3>
+<h3> <a href="/auth/register"> Register </a> </h3>
 <h1> Log In </h1>
-<form hx-post="/login" hx-target="#content" hx-target-error="#response" hx-swap="innerHTML">
+<form hx-post="/auth/login" hx-target="#content" hx-target-error="#response" hx-swap="innerHTML">
 	<label for="email"> Email: </label><br>
 	<input type="text" id="email" name="email" required /><br><br>
 
