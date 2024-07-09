@@ -23,6 +23,10 @@ func main() {
 
 	auth.RegisterRoutes(mux)
 
+	mux.Handle("/", ezauth.SessionMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "you're logged in")
+	})))
+
 	fmt.Println("Listening on :8080")
 	if err := http.ListenAndServe(":8080", mux); err != nil {
 		panic(err)

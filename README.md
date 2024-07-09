@@ -4,7 +4,7 @@ This project is still in an idea phase, and totally incomplete.
 # Motivation
 Basic bcrypt auth isn't that hard to learn for a Go `net/http` web app. Its true, but online forums are littered with desparate cries for a [django-allauth](https://docs.allauth.org/en/latest/) equivalent in the Go ecosystem, which doesn't exist. These cries either come from beginners, or from time conscious individuals uninterested in reinventing wheels. Both are valid.
 
-The basic requirements are to handle the basic auth flows with email/pass and with OAuth, against a `database/sql` compliant database connection.
+The basic requirements are to handle the basic auth flows with email/pass (and probably OAuth), against a `database/sql` compliant database connection.
 
 This compliance is important, because this means it should support different databases. SQLite and Postgres have their strengths, its nice to be able to choose.
 

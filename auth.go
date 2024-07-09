@@ -1,16 +1,23 @@
 package ezauth
 
 import (
+	"crypto/rand"
 	"database/sql"
 	"embed"
+	"encoding/base64"
 	"fmt"
 	"html/template"
 	"io/fs"
 	"net/http"
 	"path/filepath"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
+
+var sessions = make(map[string]string)
+
+type Config struct{}
 
 //go:embed resources
 var embedFS embed.FS
@@ -27,9 +34,9 @@ func NewAuth(db *sql.DB) (*Auth, error) {
 	}
 
 	// Here we walk over all views/*, set the view name as a key of `tmpl`,
-	// Then parse all templates/* into that value of *template.Template
+	// Then parse all templates/* into that value of *template.Template.
 	// This approach lets us define multiple views extending shared templates
-	// While preloading templates into memory.
+	// while also preloading templates into memory.
 	//
 	// tmpl["login.html"].ExecuteTemplate(w, "content", nil)	<- Renders just the content block
 	// tmpl["login.html"].ExecuteTemplate(w, "base", nil)		<- Renders the whole page
@@ -103,7 +110,7 @@ func (a *Auth) registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Redirect to login by returning only the "content" of the login.html template
+	// "Redirect" to login by returning "content" from login.html, which is swapped using htmx
 	a.tmpl["login.html"].ExecuteTemplate(w, "content", nil)
 }
 
@@ -124,5 +131,49 @@ func (a *Auth) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprint(w, "successful login")
+	session_id := generateSessionID()
+	// TODO: Store in db instead
+	sessions[session_id] = email
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_id",
+		Value:    session_id,
+		Expires:  time.Now().Add(48 * time.Hour),
+		HttpOnly: true,
+		Path:     "/",
+	})
+}
+
+func SessionMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		fmt.Println(sessions)
+
+		cookie, err := r.Cookie("session_id")
+		if err != nil {
+			if err == http.ErrNoCookie {
+				http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
+				return
+			}
+			http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
+			return
+		}
+
+		email, ok := sessions[cookie.Value]
+		if !ok {
+			http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
+			return
+		}
+
+		fmt.Printf("Logged in as %s\n", email)
+
+		next.ServeHTTP(w, r)
+
+	})
+}
+
+func generateSessionID() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return base64.URLEncoding.EncodeToString(b)
 }
