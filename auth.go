@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"embed"
 	"encoding/base64"
-	"fmt"
 	"html/template"
 	"io/fs"
 	"net/http"
@@ -14,8 +13,6 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 )
-
-var sessions = make(map[string]string)
 
 type Config struct{}
 
@@ -57,6 +54,13 @@ func NewAuth(db *sql.DB) (*Auth, error) {
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		email TEXT NOT NULL UNIQUE,
 		password TEXT NOT NULL
+	);
+	CREATE TABLE IF NOT EXISTS sessions (
+		session_id VARCHAR(255) PRIMARY KEY,
+		user_email INTEGER,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		expires_at TIMESTAMP,
+		FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
 	);`
 
 	_, err = db.Exec(createTableSQL)
@@ -132,23 +136,24 @@ func (a *Auth) loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session_id := generateSessionID()
-	// TODO: Store in db instead
-	sessions[session_id] = email
+	expiresAt := time.Now().Add(time.Hour * 48)
+
+	_, err = a.db.Exec("INSERT INTO sessions (session_id, user_email, expires_at) VALUES ($1, $2, $3)", session_id, email, expiresAt)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_id",
 		Value:    session_id,
-		Expires:  time.Now().Add(48 * time.Hour),
 		HttpOnly: true,
 		Path:     "/",
 	})
 }
 
-func SessionMiddleware(next http.Handler) http.Handler {
+func (a *Auth) SessionMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		fmt.Println(sessions)
-
 		cookie, err := r.Cookie("session_id")
 		if err != nil {
 			if err == http.ErrNoCookie {
@@ -159,16 +164,14 @@ func SessionMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		email, ok := sessions[cookie.Value]
-		if !ok {
+		var email string
+		err = a.db.QueryRow("SELECT user_email FROM sessions WHERE session_id=($1)", cookie.Value).Scan(&email)
+		if err != nil {
 			http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
 			return
 		}
 
-		fmt.Printf("Logged in as %s\n", email)
-
 		next.ServeHTTP(w, r)
-
 	})
 }
 

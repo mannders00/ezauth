@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"html/template"
 	"net/http"
 
 	"github.com/mannders00/ezauth"
@@ -10,7 +11,6 @@ import (
 )
 
 func main() {
-
 	mux := http.NewServeMux()
 
 	// Setup SQLite (in theory, any `*sql.DB`)
@@ -23,8 +23,9 @@ func main() {
 
 	auth.RegisterRoutes(mux)
 
-	mux.Handle("/", ezauth.SessionMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "you're logged in")
+	mux.Handle("/", auth.SessionMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tmpl := template.Must(template.New("").ParseFiles("internal/index.html"))
+		tmpl.ExecuteTemplate(w, "index.html", nil)
 	})))
 
 	fmt.Println("Listening on :8080")
