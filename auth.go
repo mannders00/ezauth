@@ -37,6 +37,7 @@ func NewAuth(db *sql.DB) (*Auth, error) {
 	//
 	// tmpl["login.html"].ExecuteTemplate(w, "content", nil)	<- Renders just the content block
 	// tmpl["login.html"].ExecuteTemplate(w, "base", nil)		<- Renders the whole page
+	// tmpl["login.html"].ExecuteTemplate(w, "content", nil)	<- Renders just the content block
 	var err error
 	err = fs.WalkDir(embedFS, "resources/views", func(viewPath string, d fs.DirEntry, err error) error {
 		if !d.IsDir() {
@@ -57,7 +58,7 @@ func NewAuth(db *sql.DB) (*Auth, error) {
 	);
 	CREATE TABLE IF NOT EXISTS sessions (
 		session_id VARCHAR(255) PRIMARY KEY,
-		user_email INTEGER,
+		user_email TEXT NOT NULL,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		expires_at TIMESTAMP,
 		FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
@@ -76,6 +77,7 @@ func (a *Auth) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /auth/register", a.renderView("register.html", nil))
 	mux.HandleFunc("POST /auth/login", a.loginHandler)
 	mux.HandleFunc("GET /auth/login", a.renderView("login.html", nil))
+	mux.HandleFunc("GET /auth/logout", a.logoutHandler)
 	mux.Handle("/auth/resources/", http.StripPrefix("/auth/", http.FileServerFS(embedFS)))
 }
 
@@ -150,6 +152,20 @@ func (a *Auth) loginHandler(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Path:     "/",
 	})
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (a *Auth) logoutHandler(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_id",
+		Value:    "",
+		HttpOnly: true,
+		Path:     "/",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+	})
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func (a *Auth) SessionMiddleware(next http.Handler) http.Handler {
@@ -171,8 +187,25 @@ func (a *Auth) SessionMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
+		// TODO: Check if session expired, renew if not
+
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (a *Auth) GetCurrentUser(r *http.Request) string {
+	cookie, err := r.Cookie("session_id")
+	if err != nil {
+		return ""
+	}
+
+	var email string
+	err = a.db.QueryRow("SELECT user_email FROM sessions WHERE session_id=($1)", cookie.Value).Scan(&email)
+	if err != nil {
+		return ""
+	}
+
+	return email
 }
 
 func generateSessionID() string {

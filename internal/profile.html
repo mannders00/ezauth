@@ -3,12 +3,14 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Home</title>
+	<title>Profile</title>
 </head>
 <body>
 	<ul>
-		<li><a href="/profile"> Profile </a></li>
+		<li><a href="/"> Home </a></li>
+		<li><a href="/auth/logout"> Log Out </a></li>
 	</ul>
-	<h1> Home </h1>
+	<h1> Profile </h1>
+	Logged in as {{ .User }}
 </body>
 </html>

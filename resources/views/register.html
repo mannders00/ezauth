@@ -3,6 +3,7 @@
 {{ define "title" }} Register User {{ end }}
 
 {{ define "content" }}
+<h3> <a href="/"> Home </a> </h3>
 <h3> <a href="/auth/login"> Log In </a> </h3>
 <h1> Register User </h1>
 <form hx-post="/auth/register" hx-target="#content" hx-target-error="#response" hx-swap="innerHTML">

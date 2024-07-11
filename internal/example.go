@@ -23,9 +23,17 @@ func main() {
 
 	auth.RegisterRoutes(mux)
 
-	mux.Handle("/", auth.SessionMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		tmpl := template.Must(template.New("").ParseFiles("internal/index.html"))
 		tmpl.ExecuteTemplate(w, "index.html", nil)
+	})
+
+	mux.Handle("/profile", auth.SessionMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		data := map[string]interface{}{
+			"User": auth.GetCurrentUser(r),
+		}
+		tmpl := template.Must(template.New("").ParseFiles("internal/profile.html"))
+		tmpl.ExecuteTemplate(w, "profile.html", data)
 	})))
 
 	fmt.Println("Listening on :8080")
