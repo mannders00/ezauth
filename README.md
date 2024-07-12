@@ -1,5 +1,5 @@
 # Warning
-This project is still in an idea phase, and totally incomplete.
+This project is still in an idea phase.
 
 # Motivation
 Basic bcrypt auth isn't that hard to learn for a Go `net/http` web app. Its true, but online forums are littered with desparate cries for a [django-allauth](https://docs.allauth.org/en/latest/) equivalent in the Go ecosystem, which doesn't exist. These cries either come from beginners, or from time conscious individuals uninterested in reinventing wheels. Both are valid.
