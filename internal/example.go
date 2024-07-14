@@ -19,10 +19,9 @@ func main() {
 		panic(err)
 	}
 
+	// Setup ezauth
 	cfg := ezauth.Config{DB: db}
-
 	auth, err := ezauth.NewAuth(&cfg)
-
 	auth.RegisterRoutes(mux)
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
