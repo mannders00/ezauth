@@ -28,7 +28,7 @@ func main() {
 		// add configured oauth providers
 		// ...
 	}
-	auth, err := ezauth.NewAuth(cfg)
+	auth, err := ezauth.NewAuth(&cfg)
 	auth.RegisterRoutes(mux)
 	mux.Handle("/profile", auth.SessionMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tmpl := template.Must(template.New("").ParseFiles("internal/profile.html"))
