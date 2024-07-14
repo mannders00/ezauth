@@ -8,6 +8,17 @@ Rolling one's own auth is a risk vector and a distraction from implementing busi
 
 An importable package can solve these problems, and this is what `ezauth` intends to do.
 
+# Sponsor
+I will be creating this package over the next few weeks or months, but am currently bottlenecked by a full time job which consumes most my time, energy, and focus.
+
+If sponsors could cover my monthly expenses, I could channel all my energy to making this the best it could be in a more timely manner.
+
+This package could greatly benefit myself, indie developers, and enterprises alike.
+
+# Demo
+![ezauth-demo](./ezauth-demo.gif)
+
+# Sample
 ```go
 func main() {
 	mux := http.NewServeMux()
@@ -29,16 +40,6 @@ func main() {
 	}
 }
 ```
-
-# Sponsor
-I will be creating this package over the next few weeks or months, but am currently bottlenecked by a full time job which consumes most my time, energy, and focus.
-
-If sponsors could cover my monthly expenses, I could channel all my energy to making this the best it could be in a more timely manner.
-
-This package could greatly benefit myself, indie developers, and enterprises alike.
-
-# Demo
-![ezauth-demo](./ezauth-demo.gif)
 
 # Motivation
 Basic bcrypt auth isn't that hard to learn for a Go `net/http` web app. Its true, but online forums are littered with desparate cries for a [django-allauth](https://docs.allauth.org/en/latest/) equivalent in the Go ecosystem, which doesn't exist (in a way that is trivial to incorporate). These cries either come from beginners, or from time conscious individuals uninterested in reinventing wheels. Both are valid.

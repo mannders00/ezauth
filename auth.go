@@ -14,7 +14,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type Config struct{}
+type Config struct {
+	DB *sql.DB
+}
 
 //go:embed resources
 var embedFS embed.FS
