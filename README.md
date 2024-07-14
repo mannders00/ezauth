@@ -6,7 +6,7 @@ Make it trivial to add user auth to a Go HTTP app with complete HTML templates, 
 
 Rolling one's own auth is a risk vector and a distraction from implementing business logic. Offloading auth onto an external provider is an additional cost, adds the latency of a network hop, and removes full control over one's application.
 
-An importable package can solve these problems, and this is what `ezauth` intends to do.
+An importable package can solve these problems in minutes instead of hours, and this is what `ezauth` intends to do.
 
 # Sponsor
 I will be creating this package over the next few weeks or months, but am currently bottlenecked by a full time job which consumes most my time, energy, and focus.
