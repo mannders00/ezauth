@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"embed"
 	"encoding/base64"
+	"fmt"
 	"html/template"
 	"io/fs"
 	"net/http"
@@ -26,9 +27,14 @@ type Auth struct {
 	tmpl map[string]*template.Template
 }
 
-func NewAuth(db *sql.DB) (*Auth, error) {
+func NewAuth(cfg *Config) (*Auth, error) {
+
+	if cfg.DB == nil {
+		return nil, fmt.Errorf("DB is required")
+	}
+
 	a := &Auth{
-		db:   db,
+		db:   cfg.DB,
 		tmpl: make(map[string]*template.Template),
 	}
 
@@ -66,7 +72,7 @@ func NewAuth(db *sql.DB) (*Auth, error) {
 		FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
 	);`
 
-	_, err = db.Exec(createTableSQL)
+	_, err = a.db.Exec(createTableSQL)
 	if err != nil {
 		return nil, err
 	}

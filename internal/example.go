@@ -19,7 +19,9 @@ func main() {
 		panic(err)
 	}
 
-	auth, err := ezauth.NewAuth(db)
+	cfg := ezauth.Config{DB: db}
+
+	auth, err := ezauth.NewAuth(&cfg)
 
 	auth.RegisterRoutes(mux)
 
