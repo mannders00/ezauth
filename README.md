@@ -1,5 +1,5 @@
 # Warning
-This project is still in an idea phase.
+This project is still in an experimental phase.
 
 # Goal
 Make it trivial to add user auth to a Go HTTP app with complete HTML templates, using any `*sql.DB` compliant database as the storage mechanism.
